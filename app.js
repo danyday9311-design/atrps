@@ -1,39 +1,9 @@
-(()=>{
-const $=s=>document.querySelector(s), N=11, KEY="gong-su-11-page-v1";
-const blank=()=>Array.from({length:N},(_,i)=>({name:`멤버 ${i+1}`,photo:"",value:5,comment:""}));
-let data={page:0,brand:"&TEAM",entries:blank()};
-try{const old=JSON.parse(localStorage.getItem(KEY));if(old&&Array.isArray(old.entries)){data={...data,...old};data.entries=Array.from({length:N},(_,i)=>old.entries[i]||blank()[i]);}}catch(e){}
-let busy=false;
-function save(){try{localStorage.setItem(KEY,JSON.stringify(data));$("#saveNote").textContent="✓ 자동 저장됨";}catch(e){$("#saveNote").textContent="저장 공간이 부족합니다. 사진 크기를 줄여주세요.";}}
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function current(){return data.entries[data.page];}
-function valueText(v){return v<3?"L 취향":v<5?"L 쪽":v===5?"중간":v<8?"R 쪽":"R 취향";}
-function fillBar(v){return Array.from({length:11},(_,i)=>`<i class="${i<=v?'on':''}"></i>`).join("");}
-function render(){
- const e=current();$("#brandName").value=data.brand;$("#memberName").value=e.name;$("#comment").value=e.comment;$("#preference").value=e.value;
- $("#stepLabel").textContent=`PAGE ${String(data.page+1).padStart(2,"0")} / 11`;$("#progressPct").textContent=`${Math.round((data.page+1)/N*100)}%`;$("#progressFill").style.width=`${(data.page+1)/N*100}%`;
- $("#rangeValue").textContent=valueText(+e.value);$(".range-box").style.setProperty("--fill",`${(+e.value)/10*100}%`);
- $("#charCount").textContent=`${e.comment.length}/150`;$("#prevBtn").disabled=data.page===0;$("#nextBtn").innerHTML=data.page===N-1?'최종 결과 보기 <span>→</span>':'다음 페이지 <span>→</span>';
- $("#profilePreview").hidden=!e.photo;$("#profilePreview").src=e.photo||"";$("#avatarPlaceholder").hidden=!!e.photo;
- $("#writer").hidden=false;$("#result").hidden=true;
-}
-function updateField(k,v){current()[k]=v;save();}
-$("#brandName").addEventListener("input",e=>{data.brand=e.target.value;save();});
-$("#memberName").addEventListener("input",e=>updateField("name",e.target.value));
-$("#comment").addEventListener("input",e=>{$("#charCount").textContent=`${e.target.value.length}/150`;updateField("comment",e.target.value);});
-$("#preference").addEventListener("input",e=>{updateField("value",+e.target.value);$("#rangeValue").textContent=valueText(+e.target.value);$(".range-box").style.setProperty("--fill",`${(+e.target.value)/10*100}%`);});
-$("#photoInput").addEventListener("change",e=>{const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>{const im=new Image();im.onload=()=>{const scale=Math.min(1,700/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*scale;c.height=im.height*scale;c.getContext("2d").drawImage(im,0,0,c.width,c.height);updateField("photo",c.toDataURL("image/jpeg",.82));render();};im.src=reader.result;};reader.readAsDataURL(f);e.target.value="";});
-$("#prevBtn").addEventListener("click",()=>{if(data.page>0){data.page--;save();render();window.scrollTo({top:0,behavior:"smooth"});}});
-$("#nextBtn").addEventListener("click",()=>{if(data.page<N-1){data.page++;save();render();window.scrollTo({top:0,behavior:"smooth"});}else showResult();});
-function showResult(){
- $("#writer").hidden=true;$("#result").hidden=false;$("#resultBrand").textContent=data.brand||"&TEAM";
- $("#resultGrid").innerHTML=data.entries.map((e,i)=>`<article class="result-card">
- ${e.photo?`<img class="result-avatar" src="${e.photo}" alt="">`:`<div class="result-avatar result-placeholder">${esc((e.name||String(i+1)).slice(0,1))}</div>`}
- <div class="result-content"><div class="result-name">${esc(e.name||`멤버 ${i+1}`)}</div><div class="result-bar-label"><span>L</span><span>R</span></div><div class="result-bar">${fillBar(+e.value)}</div><div class="result-comment">${esc(e.comment||" ")}</div></div>
- </article>`).join("");
- window.scrollTo({top:0,behavior:"smooth"});
-}
-$("#editBtn").addEventListener("click",()=>{data.page=0;save();render();window.scrollTo({top:0,behavior:"smooth"});});
-$("#pngBtn").addEventListener("click",async()=>{if(!window.html2canvas){alert("이미지 저장 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.");return;}try{const c=await html2canvas($("#result"),{scale:2,backgroundColor:"#ffffff",useCORS:true});const a=document.createElement("a");a.download="gong-su-preference-chart.png";a.href=c.toDataURL("image/png");a.click();}catch(e){alert("PNG 저장에 실패했습니다.");}});
-render();
-})();
+(()=>{const $=s=>document.querySelector(s),PAGES=11,KEY='atrps-9x11-v3';
+// 제작자 전용 고정 멤버 목록. 사진을 images 폴더에 올리고 photo 경로를 지정하세요.
+// 예: {name:'EJ',photo:'images/ej.jpg'}
+const MEMBERS=[{name:'EJ',photo:''},{name:'FUMA',photo:''},{name:'K',photo:''},{name:'NICHOLAS',photo:''},{name:'YUMA',photo:''},{name:'JO',photo:''},{name:'HARUA',photo:''},{name:'TAKI',photo:''},{name:'MAKI',photo:''}];
+const blank=()=>MEMBERS.map(()=>({value:5,comment:''}));let data={page:0,pages:Array.from({length:PAGES},blank)};try{const old=JSON.parse(localStorage.getItem(KEY));if(old&&Array.isArray(old.pages))data.pages=Array.from({length:PAGES},(_,p)=>MEMBERS.map((_,i)=>old.pages[p]?.[i]||{value:5,comment:''}));}catch(e){}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const current=()=>data.pages[data.page];function save(){try{localStorage.setItem(KEY,JSON.stringify(data));$('#saved').textContent='✓ 자동 저장됨';}catch(e){$('#saved').textContent='저장 공간이 부족합니다.';}}function label(v){return v<3?'L 취향':v<5?'L 쪽':v===5?'중간':v<8?'R 쪽':'R 취향';}
+function render(){$('#step').textContent=`PAGE ${String(data.page+1).padStart(2,'0')} / 11`,$('#pct').textContent=`${Math.round((data.page+1)/11*100)}%`,$('#fill').style.width=`${(data.page+1)/11*100}%`,$('#pageTitle').textContent=`취향 페이지 ${String(data.page+1).padStart(2,'0')}`;$('#entries').innerHTML=MEMBERS.map((m,i)=>{const e=current()[i],pic=m.photo?`<img class="avatar" src="${esc(m.photo)}" alt="${esc(m.name)}">`:`<div class="avatar">${esc(m.name[0])}</div>`;return `<article class="entry"><div class="profile">${pic}<div class="name">${esc(m.name)}</div></div><div><div class="lr"><b>L</b><span>${label(+e.value)}</span><b>R</b></div><div class="bar" style="--v:${e.value*10}%"><input aria-label="${esc(m.name)} 취향" type="range" min="0" max="10" value="${+e.value}" data-range="${i}"></div><div class="rangeNote"><span>L</span><b>${e.value}/10</b><span>R</span></div><div class="comment"><textarea maxlength="150" data-text="${i}" placeholder="자유롭게 적어보세요">${esc(e.comment)}</textarea><span>${(e.comment||'').length}/150</span></div></div></article>`}).join('');$('#prev').disabled=data.page===0;$('#next').textContent=data.page===10?'최종 결과 보기 →':'다음 페이지 →';$('#writer').hidden=false;$('#results').hidden=true;}
+$('#entries').addEventListener('input',e=>{const r=e.target.closest('[data-range]'),t=e.target.closest('[data-text]');if(r){const i=+r.dataset.range;current()[i].value=+r.value;const card=r.closest('.entry');card.querySelector('.bar').style.setProperty('--v',r.value*10+'%');card.querySelector('.lr span').textContent=label(+r.value);card.querySelector('.rangeNote b').textContent=r.value+'/10';save();}if(t){const i=+t.dataset.text;current()[i].comment=t.value;t.parentElement.querySelector('span').textContent=t.value.length+'/150';save();}});
+$('#prev').onclick=()=>{if(data.page>0){data.page--;save();render();scrollTo(0,0)}};$('#next').onclick=()=>{if(data.page<10){data.page++;save();render();scrollTo(0,0)}else showResults()};function showResults(){$('#writer').hidden=true;$('#results').hidden=false;$('#sheets').innerHTML=data.pages.map((page,p)=>`<section class="sheet"><h2>공수 취향표 · PAGE ${String(p+1).padStart(2,'0')} / 11</h2><div class="resultgrid">${MEMBERS.map((m,i)=>{const e=page[i],pic=m.photo?`<img class="resultavatar" src="${esc(m.photo)}" alt="">`:`<div class="resultavatar">${esc(m.name[0])}</div>`;return `<article class="resultcard">${pic}<div><div class="resultname">${esc(m.name)}</div><div class="lr"><b>L</b><b>R</b></div><div class="resultbar">${Array.from({length:11},(_,n)=>`<i class="${n<=+e.value?'on':''}"></i>`).join('')}</div><div class="resultcomment">${esc(e.comment||' ')}</div></div></article>`}).join('')}</div><div class="sheetfoot">MY GONGSU PREFERENCE CHART</div></section>`).join('');scrollTo(0,0)}$('#edit').onclick=()=>{data.page=0;render();scrollTo(0,0)};$('#print').onclick=()=>print();render();})();
